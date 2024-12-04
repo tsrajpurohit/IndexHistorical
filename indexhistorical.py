@@ -60,15 +60,18 @@ def update_google_sheet(dataframe, sheet_id):
     # Clear any existing data in the sheet
     sheet.clear()
 
-    # Convert 'Index_Date' column to string to avoid serialization issues
-    dataframe['Index_Date'] = dataframe['Index_Date'].dt.strftime('%Y-%m-%d')
-
-    # Replace any infinite or NaN values with None
-    dataframe = dataframe.applymap(lambda x: None if isinstance(x, float) and (x == float('inf') or x == float('-inf') or pd.isna(x)) else x)
-
     # Update the sheet with the new data
     sheet.update([dataframe.columns.values.tolist()] + dataframe.values.tolist())
     print("Data updated successfully in 'indexhistorical' Google Sheets.")
+
+# Function to save DataFrame as CSV
+def save_to_csv(dataframe, start_date, end_date):
+    """Save the combined dataframe to a CSV file."""
+    # Define a file name based on the date range
+    filename = f"combined_data_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.csv"
+    # Save to the current working directory or specify a path
+    dataframe.to_csv(filename, index=False)
+    print(f"Data saved as {filename}")
 
 async def fetch_csv(session, url):
     """Fetch the CSV data from the URL and return it as a pandas DataFrame."""
@@ -103,27 +106,13 @@ async def download_and_combine(start_date, end_date):
     # Combine all DataFrames into a single DataFrame
     if dataframes:
         combined_df = pd.concat(dataframes, ignore_index=True)
-
-        # Normalize column names to remove extra spaces and handle case sensitivity
-        combined_df.columns = combined_df.columns.str.strip()  # Remove leading/trailing spaces
-        combined_df.columns = combined_df.columns.str.replace(' ', '_', regex=True)  # Replace spaces with underscores
-
-        # Check if 'Index_Date' column exists after normalization
-        if 'Index_Date' not in combined_df.columns:
-            print("Error: 'Index Date' column not found in the data.")
-            return None
-
-        # Sort by the 'Index_Date' column (assuming 'Index Date' is the column name)
-        combined_df['Index_Date'] = pd.to_datetime(combined_df['Index_Date'], errors='coerce')  # Convert 'Index_Date' to datetime
-        combined_df = combined_df.sort_values(by='Index_Date')  # Sort by Index_Date
-
         return combined_df
     else:
         print("No data available to combine.")
         return None
 
 async def main():
-    """Main function to download and combine the last month's data."""
+    """Main function to download and combine the last 90 days' data."""
     end_date = datetime.today() - timedelta(days=1)  # Yesterday
     start_date = end_date - timedelta(days=90)       # Last 90 days
     
@@ -131,10 +120,9 @@ async def main():
     combined_df = await download_and_combine(start_date, end_date)
 
     if combined_df is not None:
-        # Save the sorted data to a .csv file
-        combined_df.to_csv("combined_sorted_data.csv", index=False)
-        print("Data saved to 'combined_sorted_data.csv'.")
-
+        # Save the combined data to CSV
+        save_to_csv(combined_df, start_date, end_date)
+        
         # Save the combined data to Google Sheets
         update_google_sheet(combined_df, SHEET_ID)
 
