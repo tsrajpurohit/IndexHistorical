@@ -97,9 +97,23 @@ async def download_and_combine(start_date, end_date):
     # Combine all DataFrames into a single DataFrame
     if dataframes:
         combined_df = pd.concat(dataframes, ignore_index=True)
-        # Sort by the 'Date' column (assuming 'Date' is the column name)
-        combined_df['Date'] = pd.to_datetime(combined_df['Date'], errors='coerce')  # Convert 'Date' to datetime
-        combined_df = combined_df.sort_values(by='Date')  # Sort by date
+
+        # Print the columns to debug the issue
+        print("Columns in the combined data:", combined_df.columns)
+
+        # Normalize column names to remove extra spaces and handle case sensitivity
+        combined_df.columns = combined_df.columns.str.strip()  # Remove leading/trailing spaces
+        combined_df.columns = combined_df.columns.str.replace(' ', '_', regex=True)  # Replace spaces with underscores
+
+        # Check if 'Index_Date' column exists after normalization
+        if 'Index_Date' not in combined_df.columns:
+            print("Error: 'Index Date' column not found in the data.")
+            return None
+
+        # Sort by the 'Index_Date' column (assuming 'Index Date' is the column name)
+        combined_df['Index_Date'] = pd.to_datetime(combined_df['Index_Date'], errors='coerce')  # Convert 'Index_Date' to datetime
+        combined_df = combined_df.sort_values(by='Index_Date')  # Sort by Index_Date
+
         return combined_df
     else:
         print("No data available to combine.")
