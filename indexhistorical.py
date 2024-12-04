@@ -60,6 +60,9 @@ def update_google_sheet(dataframe, sheet_id):
     # Clear any existing data in the sheet
     sheet.clear()
 
+    # Convert 'Index_Date' column to string to avoid serialization issues
+    dataframe['Index_Date'] = dataframe['Index_Date'].dt.strftime('%Y-%m-%d')
+
     # Update the sheet with the new data
     sheet.update([dataframe.columns.values.tolist()] + dataframe.values.tolist())
     print("Data updated successfully in 'indexhistorical' Google Sheets.")
@@ -97,9 +100,6 @@ async def download_and_combine(start_date, end_date):
     # Combine all DataFrames into a single DataFrame
     if dataframes:
         combined_df = pd.concat(dataframes, ignore_index=True)
-
-        # Print the columns to debug the issue
-        print("Columns in the combined data:", combined_df.columns)
 
         # Normalize column names to remove extra spaces and handle case sensitivity
         combined_df.columns = combined_df.columns.str.strip()  # Remove leading/trailing spaces
