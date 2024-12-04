@@ -63,6 +63,9 @@ def update_google_sheet(dataframe, sheet_id):
     # Convert 'Index_Date' column to string to avoid serialization issues
     dataframe['Index_Date'] = dataframe['Index_Date'].dt.strftime('%Y-%m-%d')
 
+    # Replace any infinite or NaN values with None
+    dataframe = dataframe.applymap(lambda x: None if isinstance(x, float) and (x == float('inf') or x == float('-inf') or pd.isna(x)) else x)
+
     # Update the sheet with the new data
     sheet.update([dataframe.columns.values.tolist()] + dataframe.values.tolist())
     print("Data updated successfully in 'indexhistorical' Google Sheets.")
