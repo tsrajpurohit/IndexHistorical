@@ -16,7 +16,8 @@ load_dotenv()
 # Fetch credentials and Sheet ID from environment variables
 credentials_json = os.getenv('GOOGLE_SHEETS_CREDENTIALS')  # JSON string
 SHEET_ID = os.getenv('SHEET_ID')  # Google Sheet ID
-
+print("GOOGLE_SHEETS_CREDENTIALS:", os.getenv('GOOGLE_SHEETS_CREDENTIALS'))
+print("SHEET_ID:", os.getenv('SHEET_ID'))
 # Raise error if credentials are not set
 if not credentials_json:
     raise ValueError("GOOGLE_SHEETS_CREDENTIALS environment variable is not set.")
