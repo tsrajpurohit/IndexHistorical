@@ -2,8 +2,7 @@ name: Run fiireports Script
 
 on:
   schedule:
-    # Run every day at 10 PM IST, Monday to Friday
-   - cron: '30 16 * * 1-5'  # This cron schedule runs at 4:30 PM UTC, which is 10:00 PM IST, Monday to Friday
+    - cron: '30 16 * * 1-5'  # This cron schedule runs at 4:30 PM UTC, which is 10:00 PM IST, Monday to Friday
   workflow_dispatch:  # Allows manual trigger of the workflow
 
 jobs:
@@ -25,12 +24,16 @@ jobs:
       - name: Run script
         env:
           GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}  # Ensure this matches the secret's name in GitHub
-        run: python indexhistorical.py  # Ensure the path to the script is correct
-
-      - name: Check Git status and file changes
         run: |
+          python indexhistorical.py  # Ensure the path to the script is correct
           git status -uall  # Show untracked files and all changes
           ls -lR  # List all files and directories recursively
+
+      - name: Add generated CSV to Git
+        run: |
+          # Ensure combined_data.csv is added to Git
+          git add combined_data.csv
+          git status -uall  # Verify if the file is staged
 
       - name: Fix permissions on generated CSV files
         run: |
@@ -53,4 +56,3 @@ jobs:
           else
             echo "No changes detected. Skipping commit."
             exit 0  # Exit gracefully if no changes are detected
-          fi
