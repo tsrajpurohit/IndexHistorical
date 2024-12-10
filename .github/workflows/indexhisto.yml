@@ -3,7 +3,7 @@ name: Run fiireports Script
 on:
   schedule:
     # Run every day at 10 PM IST, Monday to Friday
-   - cron: '30 16 * * 1-5'  # This cron schedule runs at 4:30 PM UTC, which is 10:00 PM IST, Monday to Friday
+    - cron: '30 16 * * 1-5'  # This cron schedule runs at 4:30 PM UTC, which is 10:00 PM IST, Monday to Friday
   workflow_dispatch:  # Allows manual trigger of the workflow
 
 jobs:
@@ -42,15 +42,19 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           
-          # Check if there are any changes in the repository
+          # Add the CSV file explicitly
+          git add combined_data.csv
+          
+          # Show git status to confirm file is staged
+          git status -uall
+          
+          # Commit and push if there are changes
           changes=$(git diff --name-only)
           
           if [ -n "$changes" ]; then
             echo "Found changes. Adding to commit."
-            git add -A  # Ensure all changes are staged
             git commit -m "Add or update CSV files"
             git push
           else
             echo "No changes detected. Skipping commit."
             exit 0  # Exit gracefully if no changes are detected
-          fi
