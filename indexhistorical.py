@@ -10,7 +10,7 @@ from google.oauth2.service_account import Credentials
 
 # Fetch credentials and Sheet ID from environment variables
 credentials_json = os.getenv('GOOGLE_SHEETS_CREDENTIALS')  # JSON string from environment variable
-SHEET_ID = "1IUChF0UFKMqVLxTI69lXBi-g48f-oTYqI1K9miipKgY" # Sheet ID from environment variable
+SHEET_ID = "1IUChF0UFKMqVLxTI69lXBi-g48f-oTYqI1K9miipKgY"  # Sheet ID from environment variable
 
 if not credentials_json:
     raise ValueError("GOOGLE_SHEETS_CREDENTIALS environment variable is not set.")
@@ -107,8 +107,14 @@ async def main():
         update_google_sheet(combined_df, SHEET_ID, "indexhistorical")
         
         # Save the combined data to a CSV file
-        combined_df.to_csv('combined_data.csv', index=False)
-        print("Data saved to 'combined_data.csv'.")
+        try:
+            if not combined_df.empty:
+                combined_df.to_csv('combined_data.csv', index=False)
+                print("Data saved to 'combined_data.csv'.")
+            else:
+                print("DataFrame is empty, no CSV file created.")
+        except Exception as e:
+            print(f"Error saving CSV file: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
