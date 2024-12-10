@@ -1,25 +1,20 @@
 import aiohttp
 import asyncio
 import pandas as pd
-from datetime import datetime, timedelta
-from io import StringIO
 import os
 import json
+from datetime import datetime, timedelta
+from io import StringIO
 import gspread
-from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
-from dotenv import load_dotenv
-
-# Load environment variables from the .env file
-load_dotenv()
 
 # Fetch credentials and Sheet ID from environment variables
-credentials_json = os.getenv('GOOGLE_SHEETS_CREDENTIALS')  # JSON string
-SHEET_ID = "1IUChF0UFKMqVLxTI69lXBi-g48f-oTYqI1K9miipKgY"  # Google Sheet ID
+credentials_json = os.getenv('GOOGLE_SHEETS_CREDENTIALS')  # JSON string from environment variable
+SHEET_ID = "1IUChF0UFKMqVLxTI69lXBi-g48f-oTYqI1K9miipKgY" # Sheet ID from environment variable
 
-# Raise error if credentials are not set
 if not credentials_json:
     raise ValueError("GOOGLE_SHEETS_CREDENTIALS environment variable is not set.")
+
 if not SHEET_ID:
     raise ValueError("SHEET_ID environment variable is not set.")
 
@@ -30,48 +25,36 @@ credentials = Credentials.from_service_account_info(
     scopes=["https://www.googleapis.com/auth/spreadsheets"]
 )
 
-# Google Sheets setup
-def authenticate_google_sheets():
-    # Refresh the credentials if expired
-    if credentials.expired and credentials.refresh_token:
-        credentials.refresh(Request())
+# Initialize Google Sheets client
+client = gspread.authorize(credentials)
 
-    # Authorize with gspread
-    client = gspread.authorize(credentials)
-    return client
+# Function to create the sheet if it doesn't exist
+def create_sheet_if_not_exists(client, sheet_id, sheet_name):
+    sheet = client.open_by_key(sheet_id)
+    worksheets = sheet.worksheets()  # Get all worksheets in the spreadsheet
+    sheet_titles = [ws.title for ws in worksheets]  # List of sheet names
+
+    if sheet_name not in sheet_titles:
+        # If the sheet doesn't exist, create a new one
+        sheet.add_worksheet(title=sheet_name, rows="100", cols="20")
+        print(f"Sheet '{sheet_name}' created.")
+    else:
+        print(f"Sheet '{sheet_name}' already exists.")
 
 # Function to update data in Google Sheets
-def update_google_sheet(dataframe, sheet_id):
-    # Authenticate and get the Google Sheets client
-    client = authenticate_google_sheets()
-
-    # Open the spreadsheet by ID
-    spreadsheet = client.open_by_key(sheet_id)
-
-    # Check if the "indexhistorical" sheet exists
-    try:
-        sheet = spreadsheet.worksheet("indexhistorical")
-        print("'indexhistorical' sheet found.")
-    except gspread.exceptions.WorksheetNotFound:
-        # If the sheet does not exist, create it
-        print("'indexhistorical' sheet not found. Creating new sheet.")
-        sheet = spreadsheet.add_worksheet(title="indexhistorical", rows="1000", cols="20")  # Adjust rows and cols as needed
+def update_google_sheet(dataframe, sheet_id, sheet_name):
+    sheet = client.open_by_key(sheet_id)
     
-    # Clear any existing data in the sheet
-    sheet.clear()
-
+    # Create the sheet if it doesn't exist
+    create_sheet_if_not_exists(client, sheet_id, sheet_name)
+    
+    # Select the sheet by name
+    worksheet = sheet.worksheet(sheet_name)
+    worksheet.clear()  # Clear the existing data
+    
     # Update the sheet with the new data
-    sheet.update([dataframe.columns.values.tolist()] + dataframe.values.tolist())
-    print("Data updated successfully in 'indexhistorical' Google Sheets.")
-
-# Function to save DataFrame as CSV
-def save_to_csv(dataframe, start_date, end_date):
-    """Save the combined dataframe to a CSV file."""
-    # Define a file name based on the date range
-    filename = f"combined_data_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.csv"
-    # Save to the current working directory or specify a path
-    dataframe.to_csv(filename, index=False)
-    print(f"Data saved as {filename}")
+    worksheet.update([dataframe.columns.values.tolist()] + dataframe.values.tolist())
+    print("Data updated successfully in Google Sheets.")
 
 async def fetch_csv(session, url):
     """Fetch the CSV data from the URL and return it as a pandas DataFrame."""
@@ -112,19 +95,20 @@ async def download_and_combine(start_date, end_date):
         return None
 
 async def main():
-    """Main function to download and combine the last 90 days' data."""
+    """Main function to download and combine the last month's data."""
     end_date = datetime.today() - timedelta(days=1)  # Yesterday
-    start_date = end_date - timedelta(days=90)       # Last 90 days
+    start_date = end_date - timedelta(days=140)       # Last 30 days
     
     # Download and combine data
     combined_df = await download_and_combine(start_date, end_date)
 
     if combined_df is not None:
-        # Save the combined data to CSV
-        save_to_csv(combined_df, start_date, end_date)
+        # Save the combined data to Google Sheets (specifically to the 'indexhistorical' sheet)
+        update_google_sheet(combined_df, SHEET_ID, "indexhistorical")
         
-        # Save the combined data to Google Sheets
-        update_google_sheet(combined_df, SHEET_ID)
+        # Save the combined data to a CSV file
+        combined_df.to_csv('combined_data.csv', index=False)
+        print("Data saved to 'combined_data.csv'.")
 
 if __name__ == "__main__":
     asyncio.run(main())
