@@ -44,14 +44,14 @@ def create_sheet_if_not_exists(client, sheet_id, sheet_name):
 # Function to update data in Google Sheets
 def update_google_sheet(dataframe, sheet_id, sheet_name):
     sheet = client.open_by_key(sheet_id)
-    
+
     # Create the sheet if it doesn't exist
     create_sheet_if_not_exists(client, sheet_id, sheet_name)
-    
+
     # Select the sheet by name
     worksheet = sheet.worksheet(sheet_name)
     worksheet.clear()  # Clear the existing data
-    
+
     # Update the sheet with the new data
     worksheet.update([dataframe.columns.values.tolist()] + dataframe.values.tolist())
     print("Data updated successfully in Google Sheets.")
@@ -79,7 +79,7 @@ async def download_and_combine(start_date, end_date):
             formatted_date = date.strftime("%d%m%Y")
             url = base_url.format(formatted_date)
             tasks.append(fetch_csv(session, url))
-        
+
         # Wait for all download tasks to complete
         results = await asyncio.gather(*tasks)
 
@@ -98,27 +98,25 @@ async def main():
     """Main function to download and combine the last month's data."""
     end_date = datetime.today() - timedelta(days=0)  # Yesterday
     start_date = end_date - timedelta(days=140)       # Last 30 days
-    
+
     # Download and combine data
     combined_df = await download_and_combine(start_date, end_date)
 
     if combined_df is not None:
         # Save the combined data to Google Sheets (specifically to the 'indexhistorical' sheet)
         update_google_sheet(combined_df, SHEET_ID, "indexhistorical")
-        
-        # Save the combined data to a CSV file
-        try:
-           if not combined_df.empty:
-                try:
-                    script_directory = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current script
-                    csv_path = os.path.join(script_directory, 'combined_data.csv')
-                    combined_df.to_csv(csv_path, index=False)
-                    print(f"Data saved to '{csv_path}'.")
-                except Exception as e:
-                    print(f"Error saving CSV file: {e}")
-            else:
-                print("DataFrame is empty, no CSV file created.")
 
+        # Save the combined data to a CSV file
+        if not combined_df.empty:
+            try:
+                script_directory = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current script
+                csv_path = os.path.join(script_directory, 'combined_data.csv')
+                combined_df.to_csv(csv_path, index=False)
+                print(f"Data saved to '{csv_path}'.")
+            except Exception as e:
+                print(f"Error saving CSV file: {e}")
+        else:
+            print("DataFrame is empty, no CSV file created.")
 
 if __name__ == "__main__":
     asyncio.run(main())
