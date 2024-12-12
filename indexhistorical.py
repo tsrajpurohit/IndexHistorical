@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timedelta
 from io import StringIO
 import gspread
+import traceback
 from google.oauth2.service_account import Credentials
 
 # Fetch credentials and Sheet ID from environment variables
@@ -102,21 +103,18 @@ async def main():
     # Download and combine data
     combined_df = await download_and_combine(start_date, end_date)
 
-    if combined_df is not None:
-        # Save the combined data to Google Sheets (specifically to the 'indexhistorical' sheet)
-        update_google_sheet(combined_df, SHEET_ID, "indexhistorical")
+   if combined_df is not None and not combined_df.empty:
+    try:
+        script_directory = os.getcwd()  # Use current working directory
+        csv_path = os.path.join(script_directory, 'combined_data.csv')
+        combined_df.to_csv(csv_path, index=False, encoding='utf-8')
+        print(f"Data saved to '{csv_path}'.")
+    except Exception as e:
+        print(f"Error saving CSV file: {e}")
+        traceback.print_exc()
+else:
+    print("DataFrame is empty, no CSV file created.")
 
-        # Save the combined data to a CSV file
-        if not combined_df.empty:
-            try:
-                script_directory = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current script
-                csv_path = os.path.join(script_directory, 'combined_data.csv')
-                combined_df.to_csv(csv_path, index=False)
-                print(f"Data saved to '{csv_path}'.")
-            except Exception as e:
-                print(f"Error saving CSV file: {e}")
-        else:
-            print("DataFrame is empty, no CSV file created.")
 
 if __name__ == "__main__":
     asyncio.run(main())
