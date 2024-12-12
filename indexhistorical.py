@@ -108,16 +108,17 @@ async def main():
         
         # Save the combined data to a CSV file
         try:
-            if not combined_df.empty:
-                script_directory = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current script
-                csv_path = os.path.join(script_directory, 'combined_data.csv')
-                combined_df.to_csv(csv_path, index=False)
-                print(f"Data saved to '{csv_path}'.")
-
+           if not combined_df.empty:
+                try:
+                    script_directory = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current script
+                    csv_path = os.path.join(script_directory, 'combined_data.csv')
+                    combined_df.to_csv(csv_path, index=False)
+                    print(f"Data saved to '{csv_path}'.")
+                except Exception as e:
+                    print(f"Error saving CSV file: {e}")
             else:
                 print("DataFrame is empty, no CSV file created.")
-        except Exception as e:
-            print(f"Error saving CSV file: {e}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
