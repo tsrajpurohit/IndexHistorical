@@ -37,23 +37,14 @@ jobs:
 
       - name: Fix permissions on generated CSV files
         run: |
-          chmod -R 755 .  # Fix file permissions to ensure Git can track them
-          chown -R $(whoami) .  # Ensure correct ownership for files
+          chmod 644 combined_data.csv  # Ensure correct permissions for the CSV file
 
       - name: Commit and push if changes are detected
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           
-          # Check if there are any changes in the repository
-          changes=$(git diff --name-only)
-          
-          if [ -n "$changes" ]; then
-            echo "Found changes. Adding to commit."
-            git add -A  # Ensure all changes are staged
-            git commit -m "Add or update CSV files"
-            git push
-          else
-            echo "No changes detected. Skipping commit."
-            exit 0  # Exit gracefully if no changes are detected
-          fi
+          # Add and commit changes directly
+          git add combined_data.csv  # Ensure we are only adding the generated CSV file
+          git commit -m "Add or update CSV file" || echo "No changes to commit"  # Skip commit if no changes
+          git push
