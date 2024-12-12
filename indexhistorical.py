@@ -109,6 +109,11 @@ async def main():
             csv_path = os.path.join(script_directory, 'combined_data.csv')
             combined_df.to_csv(csv_path, index=False, encoding='utf-8')
             print(f"Data saved to '{csv_path}'.")
+
+            # Now update the Google Sheet with the data
+            sheet_name = "indexhistorical"  # Modify this to match your desired sheet name
+            update_google_sheet(combined_df, SHEET_ID, sheet_name)
+
         except Exception as e:
             print(f"Error saving CSV file: {e}")
             traceback.print_exc()
