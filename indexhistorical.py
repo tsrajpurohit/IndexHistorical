@@ -109,8 +109,11 @@ async def main():
         # Save the combined data to a CSV file
         try:
             if not combined_df.empty:
-                combined_df.to_csv('combined_data.csv', index=False)
-                print("Data saved to 'combined_data.csv'.")
+                script_directory = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current script
+                csv_path = os.path.join(script_directory, 'combined_data.csv')
+                combined_df.to_csv(csv_path, index=False)
+                print(f"Data saved to '{csv_path}'.")
+
             else:
                 print("DataFrame is empty, no CSV file created.")
         except Exception as e:
