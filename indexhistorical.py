@@ -98,7 +98,7 @@ async def download_and_combine(start_date, end_date):
 async def main():
     """Main function to download and combine the last month's data."""
     end_date = datetime.today() - timedelta(days=0)  # Yesterday
-    start_date = end_date - timedelta(days=140)       # Last 30 days
+    start_date = end_date - timedelta(days=140)       # Last 140 days
 
     # Download and combine data
     combined_df = await download_and_combine(start_date, end_date)
