@@ -72,7 +72,9 @@ async def fetch_csv(session, url):
 
 async def download_and_combine(start_date, end_date):
     """Download CSV files for dates between start_date and end_date, and combine them in-memory."""
-    base_url = "https://archives.nseindia.com/content/indices/ind_close_all_{}.csv"
+    #base_url = "https://archives.nseindia.com/content/indices/ind_close_all_{}.csv"
+    base_url = "https://nsearchives.nseindia.com/content/indices/ind_close_all_{}.csv"
+ 
     tasks = []
     async with aiohttp.ClientSession() as session:
         for i in range((end_date - start_date).days + 1):
