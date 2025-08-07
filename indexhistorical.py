@@ -73,25 +73,31 @@ async def fetch_csv(session, url):
     return None
 
 async def download_and_combine(start_date, end_date):
+    """Download CSV files for dates between start_date and end_date, and combine them in-memory."""
+    #base_url = "https://archives.nseindia.com/content/indices/ind_close_all_{}.csv"
     base_url = "https://nsearchives.nseindia.com/content/indices/ind_close_all_{}.csv"
+ 
     tasks = []
-
-    async with aiohttp.ClientSession(headers=headers) as session:
+    async with aiohttp.ClientSession() as session:
         for i in range((end_date - start_date).days + 1):
             date = start_date + timedelta(days=i)
             formatted_date = date.strftime("%d%m%Y")
             url = base_url.format(formatted_date)
             tasks.append(fetch_csv(session, url))
 
+        # Wait for all download tasks to complete
         results = await asyncio.gather(*tasks)
-        dataframes = [df for df in results if df is not None]
 
-        if dataframes:
-            combined_df = pd.concat(dataframes, ignore_index=True)
-            return combined_df
-        else:
-            print("❌ No data fetched for any date.")
-            return None
+    # Filter out None values (failed downloads)
+    dataframes = [df for df in results if df is not None]
+
+    # Combine all DataFrames into a single DataFrame
+    if dataframes:
+        combined_df = pd.concat(dataframes, ignore_index=True)
+        return combined_df
+    else:
+        print("No data available to combine.")
+        return None
 
 async def main():
     """Main function to download and combine the last month's data."""
