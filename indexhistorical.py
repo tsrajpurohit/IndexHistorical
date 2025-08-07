@@ -58,16 +58,18 @@ def update_google_sheet(dataframe, sheet_id, sheet_name):
     print("Data updated successfully in Google Sheets.")
 
 async def fetch_csv(session, url):
-    """Fetch the CSV data from the URL and return it as a pandas DataFrame."""
+    """Fetch CSV from NSE Archives."""
     try:
         async with session.get(url) as response:
+            date_str = url.split("_")[-1].replace(".csv", "")
             if response.status == 200:
-                csv_content = await response.text()
-                return pd.read_csv(StringIO(csv_content))
+                print(f"✅ Success: {date_str}")
+                csv_data = await response.text()
+                return pd.read_csv(StringIO(csv_data))
             else:
-                print(f"No data available for {url}. HTTP Status: {response.status}")
+                print(f"❌ HTTP Error {response.status} for {url}")
     except Exception as e:
-        print(f"Error fetching data from {url}: {e}")
+        print(f"❌ Exception while fetching {url}: {repr(e)}")  # <== FIXED: Now shows exact error
     return None
 
 async def download_and_combine(start_date, end_date):
