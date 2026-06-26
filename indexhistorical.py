@@ -28,7 +28,7 @@ credentials = Credentials.from_service_account_info(
 client = gspread.authorize(credentials)
 
 # -----------------------------
-# SHEET FUNCTIONS
+# SHEET HELPERS
 # -----------------------------
 def create_sheet_if_not_exists(client, sheet_id, sheet_name):
     sheet = client.open_by_key(sheet_id)
@@ -36,7 +36,7 @@ def create_sheet_if_not_exists(client, sheet_id, sheet_name):
     sheet_titles = [ws.title for ws in worksheets]
 
     if sheet_name not in sheet_titles:
-        sheet.add_worksheet(title=sheet_name, rows="1000", cols="30")
+        sheet.add_worksheet(title=sheet_name, rows="2000", cols="30")
         print(f"Sheet '{sheet_name}' created.")
     else:
         print(f"Sheet '{sheet_name}' already exists.")
@@ -50,18 +50,24 @@ def update_google_sheet(dataframe, sheet_id, sheet_name):
     worksheet = sheet.worksheet(sheet_name)
     worksheet.clear()
 
+    # IMPORTANT: convert everything to string-safe format
+    df_safe = dataframe.copy()
+
+    for col in df_safe.columns:
+        if pd.api.types.is_datetime64_any_dtype(df_safe[col]):
+            df_safe[col] = df_safe[col].dt.strftime("%Y-%m-%d")
+
     worksheet.update(
-        [dataframe.columns.values.tolist()] + dataframe.values.tolist()
+        [df_safe.columns.values.tolist()] + df_safe.astype(str).values.tolist()
     )
 
     print("Data updated successfully in Google Sheets.")
 
 
 # -----------------------------
-# FETCH FUNCTION
+# FETCH CSV
 # -----------------------------
 async def fetch_csv(session, url):
-    """Fetch CSV from NSE Archives."""
     try:
         async with session.get(url) as response:
             date_str = url.split("_")[-1].replace(".csv", "")
@@ -72,7 +78,7 @@ async def fetch_csv(session, url):
                 csv_data = await response.text()
                 df = pd.read_csv(StringIO(csv_data))
 
-                # ✅ FIX: Convert Index Date to datetime
+                # Convert Index Date properly
                 if "Index Date" in df.columns:
                     df["Index Date"] = pd.to_datetime(
                         df["Index Date"],
@@ -92,7 +98,7 @@ async def fetch_csv(session, url):
 
 
 # -----------------------------
-# DOWNLOAD + COMBINE
+# DOWNLOAD + MERGE
 # -----------------------------
 async def download_and_combine(start_date, end_date):
     base_url = "https://archives.nseindia.com/content/indices/ind_close_all_{}.csv"
@@ -116,7 +122,7 @@ async def download_and_combine(start_date, end_date):
 
     combined_df = pd.concat(dataframes, ignore_index=True)
 
-    # ✅ EXTRA SAFETY: enforce datetime again after merge
+    # Ensure datetime after merge (for safety)
     if "Index Date" in combined_df.columns:
         combined_df["Index Date"] = pd.to_datetime(
             combined_df["Index Date"],
@@ -143,7 +149,7 @@ async def main():
             combined_df.to_csv(csv_path, index=False, encoding="utf-8")
             print(f"Data saved to '{csv_path}'.")
 
-            # Upload to Google Sheets
+            # Upload to Google Sheets (SAFE VERSION)
             sheet_name = "indexhistorical"
             update_google_sheet(combined_df, SHEET_ID, sheet_name)
 
